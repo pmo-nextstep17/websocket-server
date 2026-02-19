@@ -6,54 +6,64 @@ Plugin WordPress per incorporare un sito esterno in un iframe e coprire visivame
 
 1. Copia la cartella `iframe-clean-viewer` dentro `wp-content/plugins/`.
 2. Attiva il plugin da **Plugin > Plugin installati**.
-3. Vai in **Impostazioni > Iframe Clean Viewer** e salva l'URL predefinito.
+3. Vai in **Impostazioni > Iframe Clean Viewer** e salva i valori di default.
 
-## Configurazione amministrazione
+## Configurazione amministrazione (default globali)
 
-Nella pagina **Impostazioni > Iframe Clean Viewer** puoi:
+In **Impostazioni > Iframe Clean Viewer** puoi salvare:
 
-- impostare l'URL predefinito da caricare nell'iframe;
-- salvare il valore nel database WordPress (`option_name`: `icv_default_url`).
+- URL predefinito iframe
+- Altezza predefinita iframe (consigliato `70vh`)
+- Nascondi header (px) predefinito
+- Nascondi footer (px) predefinito
+- Border radius (px) predefinito
 
-## Dove posso mostrarlo?
+Questi valori vengono usati sia in pagina che nel widget se non specifichi override.
 
-Puoi mostrarlo in **entrambi** i modi:
+## Responsive di default
 
-1. **Dentro una pagina/articolo** tramite shortcode.
-2. **Dentro un widget** da Aspetto > Widget (widget "Iframe Clean Viewer").
+Il contenitore iframe è responsive di default:
+
+- larghezza sempre `100%`
+- altezza default `70vh`
+- adattamento su mobile con media query (altezza e maschere ridotte)
+
+## Priorità / overwrite valori
+
+Ordine di priorità (dal più forte al più debole):
+
+1. **Valori passati nello shortcode** (quando usi una pagina/articolo)
+2. **Valori impostati nel singolo widget** (quando usi un widget)
+3. **Valori di default amministrativi** salvati in Impostazioni
+
+In pratica: shortcode e widget fanno overwrite dei default admin.
 
 ## Uso shortcode (pagina/articolo)
 
-### Uso semplice (prende URL salvato in admin)
+### Uso semplice (usa tutti i default admin)
 
 ```text
 [iframe_clean_viewer]
 ```
 
-### Uso con override URL manuale
+### Uso con override specifici
 
 ```text
 [iframe_clean_viewer url="https://esempio.com" height="85vh" hide_top="96" hide_bottom="72" border_radius="16"]
 ```
 
-### Attributi
+### Attributi shortcode
 
-- `url` (opzionale): se lo passi, ha priorità su quello salvato in amministrazione.
-- `height` (default `80vh`): altezza contenitore.
-- `hide_top` (default `80`): altezza maschera superiore in px.
-- `hide_bottom` (default `80`): altezza maschera inferiore in px.
-- `border_radius` (default `12`): arrotondamento angoli in px.
+- `url` (opzionale)
+- `height` (opzionale)
+- `hide_top` (opzionale)
+- `hide_bottom` (opzionale)
+- `border_radius` (opzionale)
 
 ## Uso come widget
 
-Vai in **Aspetto > Widget**, aggiungi il widget **Iframe Clean Viewer** nell'area desiderata (sidebar/footer ecc.) e configura:
-
-- Titolo (opzionale)
-- URL (opzionale, se vuoto usa quello salvato in Impostazioni)
-- Altezza iframe
-- Maschera top/bottom
-- Border radius
-
+Vai in **Aspetto > Widget**, aggiungi il widget **Iframe Clean Viewer** e compila i campi che vuoi sovrascrivere.
+I campi lasciati vuoti prendono il default amministrativo.
 
 ## Parametri inviati automaticamente al dominio remoto
 
@@ -68,8 +78,6 @@ Esempio finale generato:
 ```text
 https://dominio-remoto.com/pagina?source_domain=miosito.it&hide_header=80&hide_footer=80
 ```
-
-Sul dominio remoto puoi leggere questi parametri in backend/frontend e decidere come comportarti (es. nascondere header/footer server-side o client-side).
 
 ## Creare ZIP pronto da installare
 
