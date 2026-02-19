@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Iframe Clean Viewer
  * Description: Mostra una pagina esterna dentro un iframe con maschere opzionali per nascondere visivamente header e footer del sito incorporato.
- * Version: 1.4.0
+ * Version: 1.5.0
  * Author: Codex
  * License: GPL-2.0-or-later
  */
@@ -16,10 +16,9 @@ define('ICV_OPTION_DEFAULT_HEIGHT', 'icv_default_height');
 define('ICV_OPTION_DEFAULT_HIDE_TOP', 'icv_default_hide_top');
 define('ICV_OPTION_DEFAULT_HIDE_BOTTOM', 'icv_default_hide_bottom');
 define('ICV_OPTION_DEFAULT_BORDER_RADIUS', 'icv_default_border_radius');
+define('ICV_OPTION_DEFAULT_LAYOUT_MODE', 'icv_default_layout_mode');
+define('ICV_OPTION_DEFAULT_CUSTOM_MAX_WIDTH', 'icv_default_custom_max_width');
 
-/**
- * Sanitizza URL impostato da amministrazione.
- */
 function icv_sanitize_admin_url($value)
 {
     $url = esc_url_raw(trim((string) $value));
@@ -41,26 +40,30 @@ function icv_sanitize_admin_url($value)
     return $url;
 }
 
-/**
- * Sanitizza altezza CSS (es: 70vh, 600px, 100%).
- */
 function icv_sanitize_height($value)
 {
     $height = preg_replace('/[^0-9a-zA-Z.%-]/', '', (string) $value);
     return $height !== '' ? $height : '70vh';
 }
 
-/**
- * Sanitizza intero positivo.
- */
 function icv_sanitize_positive_int($value)
 {
     return max(0, intval($value));
 }
 
-/**
- * Restituisce i default globali salvati in amministrazione.
- */
+function icv_sanitize_layout_mode($value)
+{
+    $allowed = array('content', 'wide', 'full');
+    $value = sanitize_key((string) $value);
+    return in_array($value, $allowed, true) ? $value : 'content';
+}
+
+function icv_sanitize_custom_max_width($value)
+{
+    $width = preg_replace('/[^0-9a-zA-Z.%-]/', '', (string) $value);
+    return $width !== '' ? $width : '100%';
+}
+
 function icv_get_admin_defaults()
 {
     return array(
@@ -69,12 +72,11 @@ function icv_get_admin_defaults()
         'hide_top' => icv_sanitize_positive_int(get_option(ICV_OPTION_DEFAULT_HIDE_TOP, 80)),
         'hide_bottom' => icv_sanitize_positive_int(get_option(ICV_OPTION_DEFAULT_HIDE_BOTTOM, 80)),
         'border_radius' => icv_sanitize_positive_int(get_option(ICV_OPTION_DEFAULT_BORDER_RADIUS, 12)),
+        'layout_mode' => icv_sanitize_layout_mode(get_option(ICV_OPTION_DEFAULT_LAYOUT_MODE, 'content')),
+        'custom_max_width' => icv_sanitize_custom_max_width(get_option(ICV_OPTION_DEFAULT_CUSTOM_MAX_WIDTH, '100%')),
     );
 }
 
-/**
- * Registra impostazioni plugin.
- */
 function icv_register_settings()
 {
     register_setting('icv_settings_group', ICV_OPTION_DEFAULT_URL, array(
@@ -107,6 +109,18 @@ function icv_register_settings()
         'default' => 12,
     ));
 
+    register_setting('icv_settings_group', ICV_OPTION_DEFAULT_LAYOUT_MODE, array(
+        'type' => 'string',
+        'sanitize_callback' => 'icv_sanitize_layout_mode',
+        'default' => 'content',
+    ));
+
+    register_setting('icv_settings_group', ICV_OPTION_DEFAULT_CUSTOM_MAX_WIDTH, array(
+        'type' => 'string',
+        'sanitize_callback' => 'icv_sanitize_custom_max_width',
+        'default' => '100%',
+    ));
+
     add_settings_section('icv_main_section', 'Impostazioni principali', '__return_false', 'iframe-clean-viewer');
 
     add_settings_field(ICV_OPTION_DEFAULT_URL, 'URL predefinito iframe', 'icv_render_default_url_field', 'iframe-clean-viewer', 'icv_main_section');
@@ -114,6 +128,8 @@ function icv_register_settings()
     add_settings_field(ICV_OPTION_DEFAULT_HIDE_TOP, 'Nascondi header (px) predefinito', 'icv_render_default_hide_top_field', 'iframe-clean-viewer', 'icv_main_section');
     add_settings_field(ICV_OPTION_DEFAULT_HIDE_BOTTOM, 'Nascondi footer (px) predefinito', 'icv_render_default_hide_bottom_field', 'iframe-clean-viewer', 'icv_main_section');
     add_settings_field(ICV_OPTION_DEFAULT_BORDER_RADIUS, 'Border radius (px) predefinito', 'icv_render_default_border_radius_field', 'iframe-clean-viewer', 'icv_main_section');
+    add_settings_field(ICV_OPTION_DEFAULT_LAYOUT_MODE, 'Layout larghezza', 'icv_render_default_layout_mode_field', 'iframe-clean-viewer', 'icv_main_section');
+    add_settings_field(ICV_OPTION_DEFAULT_CUSTOM_MAX_WIDTH, 'Max-width custom (opzionale)', 'icv_render_default_custom_max_width_field', 'iframe-clean-viewer', 'icv_main_section');
 }
 add_action('admin_init', 'icv_register_settings');
 
@@ -159,24 +175,40 @@ function icv_render_default_border_radius_field()
     <?php
 }
 
+function icv_render_default_layout_mode_field()
+{
+    $value = icv_sanitize_layout_mode(get_option(ICV_OPTION_DEFAULT_LAYOUT_MODE, 'content'));
+    ?>
+    <select name="<?php echo esc_attr(ICV_OPTION_DEFAULT_LAYOUT_MODE); ?>">
+        <option value="content" <?php selected($value, 'content'); ?>>Content (segue il limite del tema)</option>
+        <option value="wide" <?php selected($value, 'wide'); ?>>Wide (larghezza ampia del tema)</option>
+        <option value="full" <?php selected($value, 'full'); ?>>Full width (quasi tutta la viewport)</option>
+    </select>
+    <p class="description">Se il tema applica <code>--wp--style--global--content-size</code>, scegli <strong>wide</strong> o <strong>full</strong>.</p>
+    <?php
+}
+
+function icv_render_default_custom_max_width_field()
+{
+    $value = icv_sanitize_custom_max_width(get_option(ICV_OPTION_DEFAULT_CUSTOM_MAX_WIDTH, '100%'));
+    ?>
+    <input type="text" class="regular-text" name="<?php echo esc_attr(ICV_OPTION_DEFAULT_CUSTOM_MAX_WIDTH); ?>" value="<?php echo esc_attr($value); ?>" placeholder="100% o 1200px" />
+    <p class="description">Usato in modalità <strong>content</strong> o <strong>wide</strong> per limitare ulteriormente la larghezza.</p>
+    <?php
+}
+
 function icv_add_settings_page()
 {
     add_options_page('Iframe Clean Viewer', 'Iframe Clean Viewer', 'manage_options', 'iframe-clean-viewer', 'icv_render_settings_page');
 }
 add_action('admin_menu', 'icv_add_settings_page');
 
-/**
- * Restituisce il dominio del sito WordPress corrente.
- */
 function icv_get_source_domain()
 {
     $host = wp_parse_url(home_url(), PHP_URL_HOST);
     return is_string($host) ? strtolower($host) : '';
 }
 
-/**
- * Aggiunge parametri utili all'URL di destinazione iframe.
- */
 function icv_build_iframe_url($url, $hide_top, $hide_bottom)
 {
     $source_domain = icv_get_source_domain();
@@ -194,16 +226,15 @@ function icv_build_iframe_url($url, $hide_top, $hide_bottom)
     return esc_url_raw($url_with_args);
 }
 
-/**
- * Render markup iframe condiviso tra shortcode e widget.
- */
-function icv_render_iframe_markup($url, $height, $hide_top, $hide_bottom, $border_radius)
+function icv_render_iframe_markup($url, $height, $hide_top, $hide_bottom, $border_radius, $layout_mode, $custom_max_width)
 {
     $wrapper_id = 'icv-' . wp_generate_password(8, false, false);
+    $layout_mode = icv_sanitize_layout_mode($layout_mode);
+    $custom_max_width = icv_sanitize_custom_max_width($custom_max_width);
 
     ob_start();
     ?>
-    <div id="<?php echo esc_attr($wrapper_id); ?>" class="icv-wrapper" style="--icv-height: <?php echo esc_attr($height); ?>; --icv-hide-top: <?php echo esc_attr($hide_top); ?>px; --icv-hide-bottom: <?php echo esc_attr($hide_bottom); ?>px; --icv-radius: <?php echo esc_attr($border_radius); ?>px;">
+    <div id="<?php echo esc_attr($wrapper_id); ?>" class="icv-wrapper icv-layout-<?php echo esc_attr($layout_mode); ?>" style="--icv-height: <?php echo esc_attr($height); ?>; --icv-hide-top: <?php echo esc_attr($hide_top); ?>px; --icv-hide-bottom: <?php echo esc_attr($hide_bottom); ?>px; --icv-radius: <?php echo esc_attr($border_radius); ?>px; --icv-custom-max-width: <?php echo esc_attr($custom_max_width); ?>;">
         <iframe
             src="<?php echo esc_url($url); ?>"
             class="icv-iframe"
@@ -227,6 +258,7 @@ function icv_render_settings_page()
     ?>
     <div class="wrap">
         <h1>Iframe Clean Viewer</h1>
+        <p>Nota: in molti temi block, la variabile <code>--wp--style--global--content-size</code> limita la larghezza del contenuto. Qui puoi scegliere layout wide/full per superare quel limite.</p>
         <form action="options.php" method="post">
             <?php
             settings_fields('icv_settings_group');
@@ -238,11 +270,6 @@ function icv_render_settings_page()
     <?php
 }
 
-/**
- * Shortcode: [iframe_clean_viewer]
- *
- * Attributi dello shortcode fanno overwrite dei default salvati in admin.
- */
 function icv_render_iframe_shortcode($atts)
 {
     $admin_defaults = icv_get_admin_defaults();
@@ -254,6 +281,8 @@ function icv_render_iframe_shortcode($atts)
             'hide_top' => (string) $admin_defaults['hide_top'],
             'hide_bottom' => (string) $admin_defaults['hide_bottom'],
             'border_radius' => (string) $admin_defaults['border_radius'],
+            'layout_mode' => $admin_defaults['layout_mode'],
+            'custom_max_width' => $admin_defaults['custom_max_width'],
         ),
         $atts,
         'iframe_clean_viewer'
@@ -273,10 +302,12 @@ function icv_render_iframe_shortcode($atts)
     $hide_top = icv_sanitize_positive_int($atts['hide_top']);
     $hide_bottom = icv_sanitize_positive_int($atts['hide_bottom']);
     $border_radius = icv_sanitize_positive_int($atts['border_radius']);
+    $layout_mode = icv_sanitize_layout_mode($atts['layout_mode']);
+    $custom_max_width = icv_sanitize_custom_max_width($atts['custom_max_width']);
 
     $iframe_url = icv_build_iframe_url($url, $hide_top, $hide_bottom);
 
-    return icv_render_iframe_markup($iframe_url, $height, $hide_top, $hide_bottom, $border_radius);
+    return icv_render_iframe_markup($iframe_url, $height, $hide_top, $hide_bottom, $border_radius, $layout_mode, $custom_max_width);
 }
 add_shortcode('iframe_clean_viewer', 'icv_render_iframe_shortcode');
 
@@ -303,6 +334,8 @@ class ICV_Iframe_Widget extends WP_Widget
         $hide_top = isset($instance['hide_top']) && (string) $instance['hide_top'] !== '' ? icv_sanitize_positive_int($instance['hide_top']) : $admin_defaults['hide_top'];
         $hide_bottom = isset($instance['hide_bottom']) && (string) $instance['hide_bottom'] !== '' ? icv_sanitize_positive_int($instance['hide_bottom']) : $admin_defaults['hide_bottom'];
         $border_radius = isset($instance['border_radius']) && (string) $instance['border_radius'] !== '' ? icv_sanitize_positive_int($instance['border_radius']) : $admin_defaults['border_radius'];
+        $layout_mode = isset($instance['layout_mode']) && (string) $instance['layout_mode'] !== '' ? icv_sanitize_layout_mode($instance['layout_mode']) : $admin_defaults['layout_mode'];
+        $custom_max_width = isset($instance['custom_max_width']) && (string) $instance['custom_max_width'] !== '' ? icv_sanitize_custom_max_width($instance['custom_max_width']) : $admin_defaults['custom_max_width'];
 
         echo $args['before_widget'];
 
@@ -312,7 +345,7 @@ class ICV_Iframe_Widget extends WP_Widget
 
         $iframe_url = icv_build_iframe_url($url, $hide_top, $hide_bottom);
 
-        echo icv_render_iframe_markup($iframe_url, $height, $hide_top, $hide_bottom, $border_radius); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo icv_render_iframe_markup($iframe_url, $height, $hide_top, $hide_bottom, $border_radius, $layout_mode, $custom_max_width); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo $args['after_widget'];
     }
 
@@ -326,6 +359,8 @@ class ICV_Iframe_Widget extends WP_Widget
             'hide_top' => (string) $admin_defaults['hide_top'],
             'hide_bottom' => (string) $admin_defaults['hide_bottom'],
             'border_radius' => (string) $admin_defaults['border_radius'],
+            'layout_mode' => $admin_defaults['layout_mode'],
+            'custom_max_width' => $admin_defaults['custom_max_width'],
         );
 
         $instance = wp_parse_args((array) $instance, $defaults);
@@ -337,11 +372,22 @@ class ICV_Iframe_Widget extends WP_Widget
         <p>
             <label for="<?php echo esc_attr($this->get_field_id('url')); ?>">URL (opzionale):</label>
             <input class="widefat" id="<?php echo esc_attr($this->get_field_id('url')); ?>" name="<?php echo esc_attr($this->get_field_name('url')); ?>" type="url" value="<?php echo esc_attr($instance['url']); ?>" placeholder="https://example.com">
-            <small>Se vuoto, usa l'URL default in Impostazioni.</small>
         </p>
         <p>
             <label for="<?php echo esc_attr($this->get_field_id('height')); ?>">Altezza iframe:</label>
             <input class="widefat" id="<?php echo esc_attr($this->get_field_id('height')); ?>" name="<?php echo esc_attr($this->get_field_name('height')); ?>" type="text" value="<?php echo esc_attr($instance['height']); ?>">
+        </p>
+        <p>
+            <label for="<?php echo esc_attr($this->get_field_id('layout_mode')); ?>">Layout larghezza:</label>
+            <select class="widefat" id="<?php echo esc_attr($this->get_field_id('layout_mode')); ?>" name="<?php echo esc_attr($this->get_field_name('layout_mode')); ?>">
+                <option value="content" <?php selected($instance['layout_mode'], 'content'); ?>>Content</option>
+                <option value="wide" <?php selected($instance['layout_mode'], 'wide'); ?>>Wide</option>
+                <option value="full" <?php selected($instance['layout_mode'], 'full'); ?>>Full</option>
+            </select>
+        </p>
+        <p>
+            <label for="<?php echo esc_attr($this->get_field_id('custom_max_width')); ?>">Max-width custom:</label>
+            <input class="widefat" id="<?php echo esc_attr($this->get_field_id('custom_max_width')); ?>" name="<?php echo esc_attr($this->get_field_name('custom_max_width')); ?>" type="text" value="<?php echo esc_attr($instance['custom_max_width']); ?>" placeholder="100% o 1200px">
         </p>
         <p>
             <label for="<?php echo esc_attr($this->get_field_id('hide_top')); ?>">Nascondi top (px):</label>
@@ -367,6 +413,8 @@ class ICV_Iframe_Widget extends WP_Widget
         $instance['url'] = wp_http_validate_url($url) ? $url : '';
 
         $instance['height'] = icv_sanitize_height($new_instance['height'] ?? '70vh');
+        $instance['layout_mode'] = icv_sanitize_layout_mode($new_instance['layout_mode'] ?? 'content');
+        $instance['custom_max_width'] = icv_sanitize_custom_max_width($new_instance['custom_max_width'] ?? '100%');
         $instance['hide_top'] = icv_sanitize_positive_int($new_instance['hide_top'] ?? 80);
         $instance['hide_bottom'] = icv_sanitize_positive_int($new_instance['hide_bottom'] ?? 80);
         $instance['border_radius'] = icv_sanitize_positive_int($new_instance['border_radius'] ?? 12);
@@ -390,10 +438,29 @@ function icv_enqueue_inline_styles()
         height: var(--icv-height, 70vh);
         min-height: 320px;
         max-height: 100vh;
+        max-width: min(100%, var(--icv-custom-max-width, 100%));
+        margin-left: auto;
+        margin-right: auto;
         overflow: hidden;
         border-radius: var(--icv-radius, 12px);
         background: #fff;
         box-shadow: 0 6px 24px rgba(0,0,0,.08);
+    }
+
+    .icv-wrapper.icv-layout-content {
+        max-width: min(var(--wp--style--global--content-size, 645px), var(--icv-custom-max-width, 100%));
+    }
+
+    .icv-wrapper.icv-layout-wide {
+        max-width: min(var(--wp--style--global--wide-size, 1340px), var(--icv-custom-max-width, 100%));
+    }
+
+    .icv-wrapper.icv-layout-full {
+        width: 100vw;
+        max-width: 100vw;
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
+        border-radius: 0;
     }
 
     .icv-iframe {

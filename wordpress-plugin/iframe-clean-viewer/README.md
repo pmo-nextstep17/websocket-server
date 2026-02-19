@@ -2,6 +2,15 @@
 
 Plugin WordPress per incorporare un sito esterno in un iframe e coprire visivamente header/footer con due maschere (sopra/sotto).
 
+## Perché a volte non occupa tutta la larghezza?
+
+Sì, è spesso dovuto al tema WordPress (specie block themes) che imposta limiti come:
+
+- `--wp--style--global--content-size`
+- `--wp--style--global--wide-size`
+
+Per questo nel plugin ora puoi scegliere il layout direttamente da backend.
+
 ## Installazione
 
 1. Copia la cartella `iframe-clean-viewer` dentro `wp-content/plugins/`.
@@ -17,63 +26,67 @@ In **Impostazioni > Iframe Clean Viewer** puoi salvare:
 - Nascondi header (px) predefinito
 - Nascondi footer (px) predefinito
 - Border radius (px) predefinito
-
-Questi valori vengono usati sia in pagina che nel widget se non specifichi override.
+- Layout larghezza (`content`, `wide`, `full`)
+- Max-width custom (es. `1200px` o `100%`)
 
 ## Responsive di default
 
 Il contenitore iframe è responsive di default:
 
-- larghezza sempre `100%`
+- larghezza responsive
 - altezza default `70vh`
-- adattamento su mobile con media query (altezza e maschere ridotte)
+- media query mobile con riduzione altezza/maschere
 
 ## Priorità / overwrite valori
 
-Ordine di priorità (dal più forte al più debole):
+Ordine di priorità:
 
-1. **Valori passati nello shortcode** (quando usi una pagina/articolo)
-2. **Valori impostati nel singolo widget** (quando usi un widget)
-3. **Valori di default amministrativi** salvati in Impostazioni
+1. **Shortcode** (valori passati nello shortcode)
+2. **Widget** (valori del singolo widget)
+3. **Default amministrativi**
 
-In pratica: shortcode e widget fanno overwrite dei default admin.
+Quindi shortcode/widget fanno overwrite dei default admin.
 
 ## Uso shortcode (pagina/articolo)
 
-### Uso semplice (usa tutti i default admin)
+### Uso semplice (usa default admin)
 
 ```text
 [iframe_clean_viewer]
 ```
 
-### Uso con override specifici
+### Uso con override completi
 
 ```text
-[iframe_clean_viewer url="https://esempio.com" height="85vh" hide_top="96" hide_bottom="72" border_radius="16"]
+[iframe_clean_viewer url="https://esempio.com" height="85vh" hide_top="96" hide_bottom="72" border_radius="16" layout_mode="full" custom_max_width="1400px"]
 ```
 
 ### Attributi shortcode
 
-- `url` (opzionale)
-- `height` (opzionale)
-- `hide_top` (opzionale)
-- `hide_bottom` (opzionale)
-- `border_radius` (opzionale)
+- `url`
+- `height`
+- `hide_top`
+- `hide_bottom`
+- `border_radius`
+- `layout_mode` (`content|wide|full`)
+- `custom_max_width`
 
 ## Uso come widget
 
-Vai in **Aspetto > Widget**, aggiungi il widget **Iframe Clean Viewer** e compila i campi che vuoi sovrascrivere.
-I campi lasciati vuoti prendono il default amministrativo.
+In **Aspetto > Widget**, widget **Iframe Clean Viewer**:
+
+- puoi impostare gli stessi parametri principali (inclusi `layout_mode` e `custom_max_width`)
+- i campi non compilati usano i default amministrativi
 
 ## Parametri inviati automaticamente al dominio remoto
 
-Quando il plugin costruisce l'URL dell'iframe aggiunge sempre questi query params:
+Quando il plugin costruisce l'URL dell'iframe aggiunge:
 
-- `source_domain`: dominio del tuo sito WordPress (es. `miosito.it`)
-- `hide_header`: valore numerico (px) della maschera top
-- `hide_footer`: valore numerico (px) della maschera bottom
+- `source_domain`
+- `hide_header`
+- `hide_footer`
 
-Esempio finale generato:
+Esempio:
 
 ```text
 https://dominio-remoto.com/pagina?source_domain=miosito.it&hide_header=80&hide_footer=80
@@ -87,15 +100,8 @@ Dalla root del progetto esegui:
 ./scripts/package-iframe-plugin.sh
 ```
 
-Troverai il file pronto qui:
+File generato:
 
 ```text
 wordpress-plugin/iframe-clean-viewer.zip
 ```
-
-Poi in WordPress vai su **Plugin > Aggiungi nuovo > Carica plugin** e carica lo ZIP.
-
-## Note tecniche
-
-- Il plugin **non modifica il sito remoto**: header/footer vengono nascosti solo visivamente con overlay locali.
-- Alcuni siti bloccano l'iframe via header HTTP (`X-Frame-Options` / `CSP frame-ancestors`). In quel caso il contenuto non può essere incorporato.
