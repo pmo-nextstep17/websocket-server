@@ -2,105 +2,76 @@
 
 Plugin WordPress per incorporare un sito esterno in un iframe e coprire visivamente header/footer con due maschere (sopra/sotto).
 
-## Perché a volte non occupa tutta la larghezza?
+## Perché non occupa sempre tutto lo spazio?
 
-Sì, è spesso dovuto al tema WordPress (specie block themes) che imposta limiti come:
+Sì: è spesso il tema che limita la larghezza (`--wp--style--global--content-size`, `--wp--style--global--wide-size`).
+Ora il plugin espone opzioni backend per controllare larghezza e altezza in modo responsive.
 
-- `--wp--style--global--content-size`
-- `--wp--style--global--wide-size`
+## Nuova opzione: forzare altezza frame
 
-Per questo nel plugin ora puoi scegliere il layout direttamente da backend.
+Da backend puoi scegliere **Modalità altezza iframe**:
 
-## Installazione
+- `fixed` = altezza configurata (`height` desktop + `mobile_height` mobile)
+- `fill_viewport` = prova a riempire lo schermo (`100vh` / `100dvh`) sottraendo le maschere top/bottom
 
-1. Copia la cartella `iframe-clean-viewer` dentro `wp-content/plugins/`.
-2. Attiva il plugin da **Plugin > Plugin installati**.
-3. Vai in **Impostazioni > Iframe Clean Viewer** e salva i valori di default.
+## Configurazione backend disponibile
 
-## Configurazione amministrazione (default globali)
+In **Impostazioni > Iframe Clean Viewer**:
 
-In **Impostazioni > Iframe Clean Viewer** puoi salvare:
+- URL predefinito
+- Modalità altezza (`fixed` / `fill_viewport`)
+- Altezza desktop
+- Altezza mobile
+- hide header/footer (px)
+- border radius
+- layout width (`content`, `wide`, `full`)
+- custom max-width
 
-- URL predefinito iframe
-- Altezza predefinita iframe (consigliato `70vh`)
-- Nascondi header (px) predefinito
-- Nascondi footer (px) predefinito
-- Border radius (px) predefinito
-- Layout larghezza (`content`, `wide`, `full`)
-- Max-width custom (es. `1200px` o `100%`)
+## Priorità override
 
-## Responsive di default
+1. Shortcode
+2. Widget
+3. Default admin
 
-Il contenitore iframe è responsive di default:
-
-- larghezza responsive
-- altezza default `70vh`
-- media query mobile con riduzione altezza/maschere
-
-## Priorità / overwrite valori
-
-Ordine di priorità:
-
-1. **Shortcode** (valori passati nello shortcode)
-2. **Widget** (valori del singolo widget)
-3. **Default amministrativi**
-
-Quindi shortcode/widget fanno overwrite dei default admin.
-
-## Uso shortcode (pagina/articolo)
-
-### Uso semplice (usa default admin)
+## Shortcode completo
 
 ```text
-[iframe_clean_viewer]
+[iframe_clean_viewer url="https://esempio.com" height_mode="fill_viewport" height="85vh" mobile_height="80vh" layout_mode="full" custom_max_width="1400px" hide_top="96" hide_bottom="72" border_radius="16"]
 ```
 
-### Uso con override completi
-
-```text
-[iframe_clean_viewer url="https://esempio.com" height="85vh" hide_top="96" hide_bottom="72" border_radius="16" layout_mode="full" custom_max_width="1400px"]
-```
-
-### Attributi shortcode
+Parametri supportati:
 
 - `url`
+- `height_mode` (`fixed|fill_viewport`)
 - `height`
+- `mobile_height`
+- `layout_mode` (`content|wide|full`)
+- `custom_max_width`
 - `hide_top`
 - `hide_bottom`
 - `border_radius`
-- `layout_mode` (`content|wide|full`)
-- `custom_max_width`
 
-## Uso come widget
+## Parametri inviati al dominio remoto
 
-In **Aspetto > Widget**, widget **Iframe Clean Viewer**:
-
-- puoi impostare gli stessi parametri principali (inclusi `layout_mode` e `custom_max_width`)
-- i campi non compilati usano i default amministrativi
-
-## Parametri inviati automaticamente al dominio remoto
-
-Quando il plugin costruisce l'URL dell'iframe aggiunge:
+Il plugin aggiunge all'URL iframe:
 
 - `source_domain`
 - `hide_header`
 - `hide_footer`
+- `height_mode`
+- `height`
+- `mobile_height`
+- `layout_mode`
+- `custom_max_width`
+- `border_radius`
 
-Esempio:
-
-```text
-https://dominio-remoto.com/pagina?source_domain=miosito.it&hide_header=80&hide_footer=80
-```
-
-## Creare ZIP pronto da installare
-
-Dalla root del progetto esegui:
+## ZIP installabile
 
 ```bash
 ./scripts/package-iframe-plugin.sh
 ```
 
-File generato:
+Output:
 
 ```text
 wordpress-plugin/iframe-clean-viewer.zip
